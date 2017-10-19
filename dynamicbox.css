@@ -1,0 +1,75 @@
+dynamicbox {
+    visibility: hidden;
+}
+
+dynamicbox {
+    --vpadding: 2em;
+    --hpadding: 5em;
+    --borderwidth: 0.05em;
+    --width: 0px;
+    --height: 0px;
+    --transitionspeed: 0s;
+    --shadow: 0.75em;
+    --shadowspread: 1em;
+    --radius: 1em;
+
+    box-shadow: var(--shadow) var(--shadow) var(--shadowspread) #888888;
+    background: rgba(255,255,255,1);
+    display:flex;
+    padding: var(--vpadding) var(--hpadding) var(--vpadding) var(--hpadding);
+    border: var(--borderwidth) solid black;
+    border-radius: var(--radius);
+    width: fit-content;
+    height: auto;
+    margin: auto;
+    justify-content: center;
+    overflow:scroll;
+
+    max-height: calc(100vh - 1em - var(--vpadding)*2 - var(--borderwidth)*2);
+
+    transition: width var(--transitionspeed), height var(--transitionspeed);
+}
+
+dynamicbox::-webkit-scrollbar {
+    display:none;
+}
+
+.dynamicbox_content {
+    display: flex;
+    opacity: 0;
+    margin: auto;
+    overflow:visible;
+}
+
+.dynamicbox_shadowcontent {
+    width: fit-content;
+}
+
+.dynamicbox_tooltip {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.5s;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 0.5em;
+    border-radius: 0.5em;
+
+    position: fixed;
+    z-index: 1;
+}
+
+dynamicbox:hover > .dynamicbox_tooltip {
+    opacity: 1;
+}
+
+.dynamicbox_tooltip::after {
+    content: " ";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    margin-top: -0.75em;
+    border-width: 0.75em;
+    border-style: solid;
+    border-color: transparent black transparent transparent;
+}

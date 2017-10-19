@@ -1,0 +1,27 @@
+loader {
+    position:relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: fit-content;
+    margin-top: -0.5em;
+    margin-bottom: -0.5em;
+}
+
+.loader_display {
+    display:block;
+}
+
+.loader_item {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    white-space: nowrap;
+}
+
+.loader_task div {
+    display:inline-block;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}

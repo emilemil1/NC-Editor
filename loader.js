@@ -56,7 +56,7 @@ class Loader {
         this.currentWeight = 0;
         this.currentDescription = "";
         this.percentage = 0;
-        this.progressOpacity = 100;
+        this.progressOpacity = 150;
         this.progressOpacityUp = false;
         this.loaderWidth = ToolBox.em2px(10);
         this.textWidth = this.loaderWidth * 2;
@@ -125,6 +125,9 @@ class Loader {
     setPercentage(completed, current) {
         this.percentage = completed;
         this.percentageWorking = current;
+        this.startArc = -Math.PI/2;
+        this.progressArc = this.startArc + ((Math.PI*2) * this.percentage);
+        this.greyArc = this.progressArc + ((Math.PI*2) * this.percentageWorking);
     }
 
     setStep(progress, completed, description) {
@@ -157,30 +160,39 @@ class Loader {
     }
 
     drawStaticProgress() {
-        let startArc = -Math.PI/2;
-        let endArc = startArc + ((Math.PI*2) * this.percentage);
         let radius = this.display[0].width/2;
 
-        this.ctx.fillStyle="black";
-        this.ctx.strokeStyle="black";
-        this.ctx.strokeWidth=ToolBox.em2px(0.1);
         this.ctx.beginPath();
         this.ctx.moveTo(radius, radius);
-        this.ctx.arc(radius,radius,radius*0.95,startArc, endArc);
+        this.ctx.arc(radius,radius,radius*0.95,this.startArc, this.progressArc);
         this.ctx.closePath();
+        this.ctx.fillStyle="black";
         this.ctx.fill();
+        this.ctx.strokeStyle="black";
+        this.ctx.strokeWidth=ToolBox.em2px(0.1);
+        this.ctx.stroke();
+
+
+        let greyColor = Math.floor(255 * 150/160)
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(radius, radius);
+        this.ctx.arc(radius,radius,radius*0.95,this.greyArc, this.startArc);
+        this.ctx.closePath();
+        this.ctx.fillStyle="rgba("+greyColor+", "+greyColor+", "+greyColor+", 1)";
+        this.ctx.fill();
+        this.ctx.strokeStyle="rgba("+greyColor+", "+greyColor+", "+greyColor+", 1)";
+        this.ctx.strokeWidth=ToolBox.em2px(0.1);
         this.ctx.stroke();
     }
 
     drawProgress() {
-        let startArc = ((Math.PI*2) * this.percentage) - Math.PI/2;
-        let endArc = startArc + ((Math.PI*2) * this.percentageWorking);
         let radius = this.display[0].width/2;
-        let brightness = Math.floor(255 * this.progressOpacity/100);
+        let brightness = Math.floor(255 * this.progressOpacity/160);
 
         this.ctx.beginPath();
         this.ctx.moveTo(radius, radius);
-        this.ctx.arc(radius,radius,radius*0.95,startArc, endArc);
+        this.ctx.arc(radius,radius,radius*0.95,this.progressArc, this.greyArc);
         this.ctx.closePath();
         this.ctx.fillStyle="rgba("+brightness+", "+brightness+", "+brightness+", 1)";
         this.ctx.fill();
@@ -189,12 +201,12 @@ class Loader {
         this.ctx.stroke();
 
         if (this.progressOpacityUp) {
-            this.progressOpacity+=1
-            if (this.progressOpacity == 100) {
+            this.progressOpacity+=2
+            if (this.progressOpacity == 150) {
                 this.progressOpacityUp = false;
             }
         } else {
-            this.progressOpacity-=1
+            this.progressOpacity-=2
             if (this.progressOpacity == 0) {
                 if (this.progressChanged) {
                     this.progressChanged = false;

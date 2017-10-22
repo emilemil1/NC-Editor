@@ -19,15 +19,15 @@ dynamicbox {
     padding: var(--vpadding) var(--hpadding) var(--vpadding) var(--hpadding);
     border: var(--borderwidth) solid black;
     border-radius: var(--radius);
-    width: fit-content;
-    height: auto;
+    width: var(--width);
+    height: var(--height);
     margin: auto;
     justify-content: center;
     overflow:scroll;
 
     max-height: calc(100vh - 1em - var(--vpadding)*2 - var(--borderwidth)*2);
 
-    transition: width var(--transitionspeed), height var(--transitionspeed);
+    transition: width var(--transitionspeed), height var(--transitionspeed), margin var(--transitionspeed);
 }
 
 dynamicbox::-webkit-scrollbar {
@@ -38,11 +38,8 @@ dynamicbox::-webkit-scrollbar {
     display: flex;
     opacity: 0;
     margin: auto;
-    overflow:visible;
-}
 
-.dynamicbox_shadowcontent {
-    width: fit-content;
+    transition: margin-top 1s;
 }
 
 .dynamicbox_tooltip {

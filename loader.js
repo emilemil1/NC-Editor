@@ -132,18 +132,15 @@ class Loader {
 
     setStep(progress, completed, description) {
         let string = "Step " + progress + "/" + completed + ": " + description;
-        this.task.setAutoResize(false);
-        this.task.setShadowContent(string);
-
-        if (this.task.shadowContent.width() > this.textWidth) {
+        this.task.setContent(string);
+        this.task.setContent(string, "loader_temp");
+        if (this.task.getContent("loader_temp").width() > this.textWidth) {
             this.task.setTooltip(description);
             this.task.toggleTooltip(true);
         } else {
             this.task.toggleTooltip(false);
         }
-
-        this.task.setAutoResize(true);
-        this.task.applyShadowContent();
+        this.task.removeFrame("loader_temp");
     }
 
     hideDisplay() {
@@ -230,7 +227,7 @@ class Loader {
         this.loader.append("<canvas width='"+this.loaderWidth*3+"' height='"+this.loaderWidth*3+"' style='width: "+this.loaderWidth+"px; height: "+this.loaderWidth+"px;' class='loader_display, loader_item' id=" + this.id + "_display>"+"</canvas>");
         this.display = $("#" + this.id + "_display");
         this.ctx = this.display[0].getContext("2d");
-        this.loader.append("<dynamicbox class='loader_item, loader_task' id=" + this.loader.attr('id') + "_task" + ">" + "hello" + "</dynamicbox>");
+        this.loader.append("<dynamicbox class='loader_item, loader_task' id=" + this.loader.attr('id') + "_task" + "></dynamicbox>");
         DBox.createBox(this.id + "_task");
         this.task = DBox.get(this.id + "_task");
         this.task.setBorderWidth(0);
@@ -240,7 +237,6 @@ class Loader {
         this.task.setShadowSpread(0);
         this.task.setRadius(0);
         this.task.content.css("max-width", this.textWidth);
-
     }
 }
 

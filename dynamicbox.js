@@ -17,25 +17,20 @@ class Box {
         this.status = "ready";
         this.dbQueue = [];
         this.autoResize = true;
+        this.currentFrame = 0;
+        this.frames = new Map();
     }
 
     contentify() {
-        this.box.html("<div class='dynamicbox_content' id=" + this.id + "_content" + ">" + this.box.html() + "</div>");
-        this.content = $("#"+this.id + "_content");
-        $("<div></div>", {
-            class: "dynamicbox_shadowcontent",
-            id: this.id + "_shadowcontent",
-            style: 'visibility: hidden;'
-        }).appendTo(document.body);
-        this.shadowContent = $("#"+this.id + "_shadowcontent");
+        this.box.html("<div class='dynamicbox_content' id=" + this.id + "_content0" + ">" + this.box.html() + "</div>");
+        this.frames.set(0, $("#"+this.id + "_content0"));
+        this.content = $("#"+this.id + "_content0");
 
         this.box.append("<span class='dynamicbox_tooltip' id=" + this.id + "_tooltip></span>");
         this.tooltip = $("#" + this.id + "_tooltip");
 
         this.assignDynamicParent(this.box[0]);
-        let x = this.content.width();
-        let y = this.content.height();
-        this.sizeChanged(x, y);
+        this.sizeChanged();
     }
 
     assignDynamicParent(element) {
@@ -50,38 +45,30 @@ class Box {
         }
     }
 
-    sizeChanged(x, y) {
+    sizeChanged(frame=this.currentFrame) {
         if (this.autoResize == false) {
             return;
         }
-        let changeHeight = this.box.height() - y;
-        let element;
-        if (typeof this.shadowContent == 'undefined') {
-            element = this.shadowContent;
-        } else {
-            element = this.content;
+        let element = this.frames.get(frame);
+        let x = element[0].scrollWidth;
+        let y = element[0].scrollHeight;
+        let maxX = parseFloat(element.css("max-width"));
+        let maxY = parseFloat(element.css("max-height"));
+        if (!isNaN(maxX)) {
+            x = Math.min(x, maxX);
         }
-        if (typeof x == 'undefined') {
-            x = element.width();
+        if (!isNaN(maxY)) {
+            y = Math.min(y, maxY);
         }
-        if (typeof y == 'undefined') {
-            y = element.height();
-        }
-        if (this.box.offset().top != 8) {
-            document.getElementById(this.id).style.setProperty("--height", y + "px");
-            document.getElementById(this.id).style.setProperty("--width", x + "px");
-            document.getElementById(this.id+"_content").style.removeProperty("transition");
-            document.getElementById(this.id+"_content").style.setProperty("margin-top", + changeHeight/2 + "px");
-            document.getElementById(this.id+"_content").style.setProperty("transition", "margin-top " + this.getTransitionSpeed() + "s ease");
-            document.getElementById(this.id+"_content").style.setProperty("margin-top", "0px");
-        } else {
-            document.getElementById(this.id).style.setProperty("--height", y + "px");
-            document.getElementById(this.id).style.setProperty("--width", x + "px");
-        }
+        document.getElementById(this.id).style.setProperty("--height", y + "px");
+        document.getElementById(this.id).style.setProperty("--width", x + "px");
 
-        this.tooltip.css("width", this.box.width());
+        this.frames.get(frame).css("margin-top", "0px");
+
+        console.log(this.content.offset().top)
+        this.tooltip.css("width", x);
         this.tooltip.css("left", this.box.offset().left + this.box.width() + ToolBox.em2px(1.5));
-        this.tooltip.css("top", this.box.offset().top - this.tooltip.height()/2 + this.content.height()/2 - ToolBox.em2px(0.5));
+        this.tooltip.css("top", this.box.offset().top - this.tooltip.height()/2 - ToolBox.em2px(0.25));
 
         if (typeof this.dynamicparent != 'undefined') {
             this.dynamicparent.sizeChanged();
@@ -90,8 +77,16 @@ class Box {
 
     finalize() {
         this.setTransitionSpeed(1);
-        document.getElementById(this.id).style.setProperty("width", "let(--width)");
-        document.getElementById(this.id).style.setProperty("height", "let(--height)");
+    }
+
+    createFrame(content, frameId) {
+        $("<div></div>", {
+            class: "dynamicbox_content",
+            id: this.id + "_content" + frameId,
+            style: 'visibility: hidden;'
+        }).appendTo(document.body);
+        this.frames.set(frameId, $("#"+this.id + "_content" + frameId));
+        this.setContent(content, frameId);
     }
 
 
@@ -152,67 +147,120 @@ class Box {
         return this;
     }
 
-    setShadowContent(content) {
-        if (this.status != "ready") {
-            this.queue(this.setShadowContent, content)
+    setContent(content, frame=this.currentFrame) {
+        if (this.status != "ready" && frame == this.currentFrame) {
+            this.queue(this.setContent, content, frame)
             return this;
         }
 
-        this.shadowContent.html(content);
-        let x = this.shadowContent.width();
-        let y = this.shadowContent.height();
-        this.sizeChanged(x, y)
+        if (typeof this.frames.get(frame) != 'undefined') {
+            if (content[0] instanceof HTMLElement) {
+                this.frames.get(frame).empty();
+                this.frames.get(frame).append(content);
+            } else {
+                this.frames.get(frame).html(content);
+            }
+        } else {
+            this.createFrame(content, frame);
+        }
+        if (frame == this.currentFrame) {
+            this.sizeChanged();
+        }
+
         return this;
     }
 
-    applyShadowContent() {
+    getContent(frame=this.currentFrame) {
+        return this.frames.get(frame);
+    }
+
+    setFrame(frame=this.currentFrame) {
         if (this.status != "ready") {
-            this.queue(this.applyShadowContent)
+            this.queue(this.setFrame, frame);
             return this;
         }
 
-        this.setContent(this.shadowContent.html());
-        this.shadowContent.html("");
-        return this;
-    }
-
-    getShadowContent() {
-        return this.shadowContent;
-    }
-
-    clearShadowContent() {
-        this.shadowContent.html("");
-    }
-
-    setContent(content) {
-        if (this.status != "ready") {
-            this.queue(this.setContent, content)
+        if(frame == this.currentFrame) {
             return this;
         }
 
-        this.content.html(content);
-        this.sizeChanged()
+        this.content.css("visibility", "hidden");
+        this.content[0].style.setProperty("margin-top", "auto");
+        this.content.appendTo(document.body);
+        let border = parseFloat(this.box.css("border"));
+        let topPadding = parseFloat(this.box.css("padding-top"));
+        let botPadding = parseFloat(this.box.css("padding-bottom"));
+        let topMargin = parseFloat(this.frames.get(frame).css("margin-top"));
+        let botMargin = parseFloat(this.frames.get(frame).css("margin-bottom"));
+        let newHeight = this.frames.get(frame).height() + topPadding + botPadding + topMargin + botMargin + (border*2);
+        let sizeDiff = (newHeight - this.box.outerHeight())/2;
+        this.frames.get(frame).css("margin-top", -sizeDiff + "px")
+        this.frames.get(frame).prependTo(this.box);
+        this.frames.get(frame).css("visibility", "visible");
+        this.content = this.frames.get(frame);
+        this.currentFrame = frame
+        this.sizeChanged();
+
         return this;
     }
 
-    getContent() {
-        return this.content;
+    removeFrame(frame) {
+        if (this.status != "ready" && frame == this.currentFrame) {
+            this.queue(this.removeFrame, frame)
+            return this;
+        }
+
+        this.frames.get(frame).remove();
+        this.frames.delete(frame);
+
+        return this;
     }
 
     setAutoResize(bool) {
+        if (this.status != "ready") {
+            this.queue(this.setAutoResize, bool);
+            return this;
+        }
+
         this.autoResize = bool;
+
+        return this;
     }
 
     toggleTooltip(bool) {
+        if (this.status != "ready") {
+            this.queue(this.toggleTooltip, bool);
+            return this;
+        }
+
         if (bool) {
             this.tooltip.css("visibility", "visible");
         } else {
             this.tooltip.css("visibility", "hidden")
         }
+
+        return this;
     }
 
     setTooltip(string) {
+        if (this.status != "ready") {
+            this.queue(this.setTooltip, string);
+            return this;
+        }
+
         this.tooltip.html(string);
+        this.sizeChanged();
+
+        return this;
+    }
+
+    runFunction(func) {
+        if (this.status != "ready") {
+            this.queue(this.runFunction, func);
+            return this;
+        }
+
+        func();
     }
 
 
@@ -222,14 +270,20 @@ class Box {
 
     setVPadding(padding) {
         document.getElementById(this.id).style.setProperty("--vpadding", padding + "em");
+
+        return this
     }
 
     setHPadding(padding) {
         document.getElementById(this.id).style.setProperty("--hpadding", padding + "em");
+
+        return this
     }
 
     setTransitionSpeed(speed) {
         document.getElementById(this.id).style.setProperty("--transitionspeed", speed + 's');
+
+        return this
     }
 
     getTransitionSpeed() {
@@ -239,18 +293,49 @@ class Box {
 
     setBorderWidth(width) {
         document.getElementById(this.id).style.setProperty("--borderwidth", width + "em");
+
+        return this
     }
 
     setShadow(amount) {
         document.getElementById(this.id).style.setProperty("--shadow", amount + "em");
+
+        return this
     }
 
     setShadowSpread(amount) {
         document.getElementById(this.id).style.setProperty("--shadowspread", amount + "em");
+
+        return this
     }
 
     setRadius(amount) {
         document.getElementById(this.id).style.setProperty("--radius", amount + "em");
+
+        return this
+    }
+
+    setMargin(value, type) {
+        switch(type) {
+            case "top":
+                document.getElementById(this.id).style.setProperty("margin-top", value);
+                this.topMargin = value;
+                break;
+            case "bottom":
+                document.getElementById(this.id).style.setProperty("margin-bottom", value);
+                this.bottomMargin = value;
+                break;
+            case "left":
+                document.getElementById(this.id).style.setProperty("margin-left", value);
+                this.leftMargin = value;
+                break;
+            case "right":
+                document.getElementById(this.id).style.setProperty("margin-right", value);
+                this.rightMargin = value;
+                break;
+        }
+
+        return this
     }
 }
 
@@ -305,32 +390,6 @@ class DBox {
         children.forEach(function(box) {
             func.bind(box)(...args);
         });
-    }
-
-    needGrowth() {
-        if(this.content.html() == "") {
-            return true;
-        }
-
-        let contentWidth = $("#" + this.name + "_content")[0].offsetWidth;
-        let contentHeight = $("#" + this.name + "_content")[0].offsetHeight;
-        let boxWidth = $("#" + this.name)[0].offsetWidth;
-        let boxHeight = $("#" + this.name)[0].offsetHeight;
-
-        let diffWidth = boxWidth - contentWidth;
-        let diffHeight = boxHeight - contentHeight;
-        let em = parseFloat($("body").css("font-size"));
-        diffWidth = diffWidth/em;
-        diffHeight = diffHeight/em;
-
-        let widthTolerance = parseFloat(getComputedStyle(document.getElementById(this.name)).getPropertyValue("--hpadding"));
-        let heightTolerance = parseFloat(getComputedStyle(document.getElementById(this.name)).getPropertyValue("--vpadding"));
-
-        if (Math.abs(diffWidth) < widthTolerance/1.5 || Math.abs(diffHeight) < heightTolerance/1.5 || Math.abs(diffWidth) > widthTolerance*2.5 || Math.abs(diffHeight) > heightTolerance*3) {
-            return true;
-        } else {
-            return false;
-        }
     }
 }
 

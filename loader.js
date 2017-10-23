@@ -132,8 +132,9 @@ class Loader {
 
     setStep(progress, completed, description) {
         let string = "Step " + progress + "/" + completed + ": " + description;
-        this.task.setContent(string);
         this.task.setContent(string, "loader_temp");
+        this.task.sizeChanged("loader_temp");
+        this.task.setContent(string);
         if (this.task.getContent("loader_temp").width() > this.textWidth) {
             this.task.setTooltip(description);
             this.task.toggleTooltip(true);
@@ -224,7 +225,7 @@ class Loader {
     }
 
     contentify() {
-        this.loader.append("<canvas width='"+this.loaderWidth*3+"' height='"+this.loaderWidth*3+"' style='width: "+this.loaderWidth+"px; height: "+this.loaderWidth+"px;' class='loader_display, loader_item' id=" + this.id + "_display>"+"</canvas>");
+        this.loader.append("<canvas width='"+this.loaderWidth*4+"' height='"+this.loaderWidth*4+"' style='width: "+this.loaderWidth+"px; height: "+this.loaderWidth+"px;' class='loader_display, loader_item' id=" + this.id + "_display>"+"</canvas>");
         this.display = $("#" + this.id + "_display");
         this.ctx = this.display[0].getContext("2d");
         this.loader.append("<dynamicbox class='loader_item, loader_task' id=" + this.loader.attr('id') + "_task" + "></dynamicbox>");

@@ -19,6 +19,19 @@ class Box {
         this.autoResize = true;
         this.currentFrame = 0;
         this.frames = new Map();
+        this.transSpeed = this.getTransitionSpeed();
+        document.getElementById(this.id).style.setProperty("--transitionspeed", 0 + 's');
+        this.vPadding = this.getVPadding();
+        this.hPadding = this.getHPadding();
+        this.shadow = this.getShadow();
+        this.shadowSpread = this.getShadowSpread();
+        this.topMargin = this.getMarginTop;
+        this.bottomMargin = this.getMarginBottom();
+        this.leftMargin = this.getMarginLeft();
+        this.rightMargin = this.getMarginRight();
+        this.radius = this.getRadius();
+        this.borderWidth = this.getBorderWidth();
+        this.zoom = 1/devicePixelRatio;
     }
 
     contentify() {
@@ -50,8 +63,8 @@ class Box {
             return;
         }
         let element = this.frames.get(frame);
-        let x = element[0].scrollWidth;
-        let y = element[0].scrollHeight;
+        let x = element.innerWidth();
+        let y = element.innerHeight();
         let maxX = parseFloat(element.css("max-width"));
         let maxY = parseFloat(element.css("max-height"));
         if (!isNaN(maxX)) {
@@ -63,30 +76,51 @@ class Box {
         document.getElementById(this.id).style.setProperty("--height", y + "px");
         document.getElementById(this.id).style.setProperty("--width", x + "px");
 
-        this.frames.get(frame).css("margin-top", "0px");
-
-        console.log(this.content.offset().top)
-        this.tooltip.css("width", x);
-        this.tooltip.css("left", this.box.offset().left + this.box.width() + ToolBox.em2px(1.5));
-        this.tooltip.css("top", this.box.offset().top - this.tooltip.height()/2 - ToolBox.em2px(0.25));
+        this.refreshTooltipPos();
 
         if (typeof this.dynamicparent != 'undefined') {
             this.dynamicparent.sizeChanged();
         }
+
+        return this;
+    }
+
+    refreshTooltipPos() {
+        this.tooltip.css("width", this.box.width());
+        this.tooltip.css("left", this.box.offset().left + this.box.width() + ToolBox.em2px(1.5));
+        this.tooltip.css("top", this.box.offset().top + parseFloat(this.content.css("padding-top")) - parseFloat(this.tooltip.css("padding-top")) - this.tooltip.height()/2 + this.content.height()/2 - $(window).scrollTop());
+        console.log
     }
 
     finalize() {
-        this.setTransitionSpeed(1);
+        this.setTransitionSpeed(this.transSpeed);
+        this.refreshTooltipPos();
     }
 
     createFrame(content, frameId) {
         $("<div></div>", {
             class: "dynamicbox_content",
             id: this.id + "_content" + frameId,
-            style: 'visibility: hidden;'
-        }).appendTo(document.body);
+            style: 'visibility: hidden; position: fixed;'
+        }).appendTo(this.box);
         this.frames.set(frameId, $("#"+this.id + "_content" + frameId));
         this.setContent(content, frameId);
+    }
+
+    onWindowResize() {
+        this.zoom = 1/devicePixelRatio;
+
+        this.setVPadding();
+        this.setHPadding();
+        this.setMargin();
+        this.setShadow()
+        this.setShadowSpread();
+        this.setRadius();
+        this.setBorderWidth();
+    }
+
+    onWindowResizePre() {
+        document.getElementById(this.id).style.setProperty("--transitionspeed", 0 + 's');
     }
 
 
@@ -147,6 +181,30 @@ class Box {
         return this;
     }
 
+    fitToFrame(frame=this.currentFrame) {
+        if (this.status != "ready") {
+            this.queue(this.fitToFrame, frame)
+            return this;
+        }
+
+        let border = parseFloat(this.box.css("border"));
+        let topPadding = parseFloat(this.box.css("padding-top"));
+        let botPadding = parseFloat(this.box.css("padding-bottom"));
+        let newHeight = this.frames.get(frame).height() + topPadding + botPadding + (border*2);
+        let sizeDiff = (newHeight - this.box.outerHeight())/2;
+
+        this.frames.get(frame).css("margin-top", -sizeDiff + "px");
+        this.content.css("margin-top", 0 + "px");
+
+        this.sizeChanged(frame)
+
+        this.frames.get(frame).css("margin-top", 0 + "px");
+        this.content.css("margin-top", sizeDiff + "px");
+
+
+        return this;
+    }
+
     setContent(content, frame=this.currentFrame) {
         if (this.status != "ready" && frame == this.currentFrame) {
             this.queue(this.setContent, content, frame)
@@ -163,7 +221,7 @@ class Box {
         } else {
             this.createFrame(content, frame);
         }
-        if (frame == this.currentFrame) {
+        if (frame==this.currentFrame) {
             this.sizeChanged();
         }
 
@@ -183,22 +241,15 @@ class Box {
         if(frame == this.currentFrame) {
             return this;
         }
-
         this.content.css("visibility", "hidden");
-        this.content[0].style.setProperty("margin-top", "auto");
-        this.content.appendTo(document.body);
-        let border = parseFloat(this.box.css("border"));
-        let topPadding = parseFloat(this.box.css("padding-top"));
-        let botPadding = parseFloat(this.box.css("padding-bottom"));
-        let topMargin = parseFloat(this.frames.get(frame).css("margin-top"));
-        let botMargin = parseFloat(this.frames.get(frame).css("margin-bottom"));
-        let newHeight = this.frames.get(frame).height() + topPadding + botPadding + topMargin + botMargin + (border*2);
-        let sizeDiff = (newHeight - this.box.outerHeight())/2;
-        this.frames.get(frame).css("margin-top", -sizeDiff + "px")
-        this.frames.get(frame).prependTo(this.box);
+        this.content.css("position", "fixed");
+        this.content.css("margin-top", "");
+
         this.frames.get(frame).css("visibility", "visible");
+        this.frames.get(frame).css("position", "");
         this.content = this.frames.get(frame);
-        this.currentFrame = frame
+        this.currentFrame = frame;
+
         this.sizeChanged();
 
         return this;
@@ -212,6 +263,11 @@ class Box {
 
         this.frames.get(frame).remove();
         this.frames.delete(frame);
+
+        if (frame == this.currentFrame) {
+            this.currentFrame = 'undefined';
+            this.sizeChanged();
+        }
 
         return this;
     }
@@ -268,20 +324,33 @@ class Box {
 
     //Style
 
-    setVPadding(padding) {
-        document.getElementById(this.id).style.setProperty("--vpadding", padding + "em");
+    setVPadding(padding=this.vPadding) {
+        this.vPadding = padding;
+        document.getElementById(this.id).style.setProperty("--vpadding", padding * this.zoom + "em");
 
         return this
     }
 
-    setHPadding(padding) {
-        document.getElementById(this.id).style.setProperty("--hpadding", padding + "em");
+    getVPadding() {
+        let padding = getComputedStyle(this.box[0]).getPropertyValue("--vpadding");
+        return parseFloat(padding);
+    }
+
+    setHPadding(padding=this.hPadding) {
+        this.hPadding = padding;
+        document.getElementById(this.id).style.setProperty("--hpadding", padding * this.zoom + "em");
 
         return this
     }
 
-    setTransitionSpeed(speed) {
-        document.getElementById(this.id).style.setProperty("--transitionspeed", speed + 's');
+    getHPadding() {
+        let padding = getComputedStyle(this.box[0]).getPropertyValue("--hpadding");
+        return parseFloat(padding);
+    }
+
+    setTransitionSpeed(speed=this.transSpeed) {
+        this.transSpeed = speed;
+        document.getElementById(this.id).style.setProperty("--transitionspeed", this.transSpeed + 's');
 
         return this
     }
@@ -291,51 +360,102 @@ class Box {
         return parseFloat(speed);
     }
 
-    setBorderWidth(width) {
+    setBorderWidth(width=this.borderWidth) {
+        this.borderWidth = width;
         document.getElementById(this.id).style.setProperty("--borderwidth", width + "em");
 
         return this
     }
 
-    setShadow(amount) {
-        document.getElementById(this.id).style.setProperty("--shadow", amount + "em");
+    getBorderWidth() {
+        let width = getComputedStyle(this.box[0]).getPropertyValue("--borderwidth");
+        return parseFloat(width);
+    }
+
+    setShadow(amount=this.shadow) {
+        this.shadow = amount;
+        document.getElementById(this.id).style.setProperty("--shadow", amount * this.zoom + "em");
 
         return this
     }
 
-    setShadowSpread(amount) {
-        document.getElementById(this.id).style.setProperty("--shadowspread", amount + "em");
+    getShadow() {
+        let shadow = getComputedStyle(this.box[0]).getPropertyValue("--shadow");
+        return parseFloat(shadow);
+    }
+
+    setShadowSpread(amount=this.shadowSpread) {
+        this.shadowSpread = amount;
+        document.getElementById(this.id).style.setProperty("--shadowspread", amount * this.zoom + "em");
 
         return this
     }
 
-    setRadius(amount) {
-        document.getElementById(this.id).style.setProperty("--radius", amount + "em");
+    getShadowSpread() {
+        let spread = getComputedStyle(this.box[0]).getPropertyValue("--shadowspread");
+        return parseFloat(spread);
+    }
+
+    setRadius(amount=this.radius) {
+        this.radius = amount;
+        document.getElementById(this.id).style.setProperty("--radius", amount * this.zoom + "em");
 
         return this
+    }
+
+    getRadius() {
+        let radius = getComputedStyle(this.box[0]).getPropertyValue("--radius");
+        return parseFloat(radius);
     }
 
     setMargin(value, type) {
         switch(type) {
             case "top":
-                document.getElementById(this.id).style.setProperty("margin-top", value);
+                document.getElementById(this.id).style.setProperty("margin-top", value * this.zoom + "em");
                 this.topMargin = value;
                 break;
             case "bottom":
-                document.getElementById(this.id).style.setProperty("margin-bottom", value);
+                document.getElementById(this.id).style.setProperty("margin-bottom", value * this.zoom + "em");
                 this.bottomMargin = value;
                 break;
             case "left":
-                document.getElementById(this.id).style.setProperty("margin-left", value);
+                document.getElementById(this.id).style.setProperty("margin-left", value * this.zoom + "em");
                 this.leftMargin = value;
                 break;
             case "right":
-                document.getElementById(this.id).style.setProperty("margin-right", value);
+                document.getElementById(this.id).style.setProperty("margin-right", value * this.zoom + "em");
                 this.rightMargin = value;
                 break;
         }
 
+        if (typeof value == 'undefined' && typeof type == 'undefined') {
+            document.getElementById(this.id).style.setProperty("margin-top", this.topMargin * this.zoom + "em");
+            document.getElementById(this.id).style.setProperty("margin-bottom", this.bottomMargin * this.zoom + "em");
+            document.getElementById(this.id).style.setProperty("margin-left", this.leftMargin * this.zoom + "em");
+            document.getElementById(this.id).style.setProperty("margin-right", this.rightMargin * this.zoom + "em");
+        }
+
         return this
+    }
+
+    getMarginTop() {
+        let margin = getComputedStyle(this.box[0]).getPropertyValue("--margin-top");
+        return parseFloat(margin);
+    }
+
+    getMarginBottom() {
+        let margin = getComputedStyle(this.box[0]).getPropertyValue("--margin-bottom");
+        return parseFloat(margin);
+    }
+
+    getMarginLeft() {
+        let margin = getComputedStyle(this.box[0]).getPropertyValue("--margin-left");
+        return parseFloat(margin);
+    }
+
+    getMarginRight() {
+        let margin = getComputedStyle(this.box[0]).getPropertyValue("--margin-right");
+        return parseFloat(margin);
     }
 }
 
@@ -347,7 +467,13 @@ class DBox {
             DBox.createBox(this.getAttribute('id'));
         });
         $(window).resize(function() {
-            DBox.toAllChildren(Box.prototype.sizeChanged);
+            DBox.toAll(Box.prototype.onWindowResizePre);
+            DBox.toAll(Box.prototype.onWindowResize);
+            DBox.toAll(Box.prototype.sizeChanged);
+            DBox.toAll(Box.prototype.setTransitionSpeed);
+        });
+        $(window).scroll(function() {
+            DBox.toAll(Box.prototype.refreshTooltipPos);
         });
     }
 
@@ -365,6 +491,7 @@ class DBox {
         let newBox = new Box(id);
         DBox.prototype.boxMap.set(newBox.id, newBox);
         newBox.contentify();
+        newBox.onWindowResize();
     }
 
     static get(id) {

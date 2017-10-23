@@ -8,7 +8,7 @@ dynamicbox {
     --borderwidth: 0.05em;
     --width: 0px;
     --height: 0px;
-    --transitionspeed: 0s;
+    --transitionspeed: 1s;
     --shadow: 0.75em;
     --shadowspread: 1em;
     --radius: 1em;
@@ -20,12 +20,11 @@ dynamicbox {
     border: var(--borderwidth) solid black;
     border-radius: var(--radius);
     width: var(--width);
+    max-width: calc(100% - var(--hpadding)*2 - var(--borderwidth)*2);
     height: var(--height);
     margin: auto;
     justify-content: center;
     overflow:scroll;
-
-    max-height: calc(100vh - 1em - var(--vpadding)*2 - var(--borderwidth)*2);
 
     transition: width var(--transitionspeed), height var(--transitionspeed), margin var(--transitionspeed);
 }
@@ -37,7 +36,8 @@ dynamicbox::-webkit-scrollbar {
 .dynamicbox_content {
     display: flex;
     opacity: 0;
-    margin: auto;
+    margin:auto;
+    width:fit-content;
 
     transition: margin-top 1s;
 }

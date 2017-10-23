@@ -11,4 +11,8 @@ class ToolBox {
         var emSize = parseFloat($("body").css("font-size"));
         return (emSize * em);
     }
+
+    static emSize() {
+        return parseFloat($("body").css("font-size"));
+    }
 }
